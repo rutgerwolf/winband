@@ -6,11 +6,17 @@
  * DrumSampler — F5f / F5g
  *
  * Loads the Salamander Drumkit WAV samples and renders drum hits into
- * audio buffers based on a DrumPattern step sequence.
+ * an audio buffer based on a DrumPattern step sequence.
  *
- * Sample files are expected at:
- *   <appDir>/assets/samples/salamander/<voice>/<voice>-<velocity>.wav
- * e.g. assets/samples/salamander/kick/kick-hard.wav
+ * Expected directory layout (flexible — first WAV in each subdir is used):
+ *   <salamanderRoot>/kick/   → kick sample
+ *   <salamanderRoot>/snare/  → snare sample
+ *   <salamanderRoot>/hihat/  → hi-hat sample
+ *   <salamanderRoot>/crash/  → crash sample
+ *   <salamanderRoot>/ride/   → ride sample
+ *   <salamanderRoot>/tom/    → tom sample
+ *
+ * Missing samples produce silence for that voice; the engine keeps running.
  */
 class DrumSampler
 {
@@ -18,17 +24,29 @@ public:
     DrumSampler();
     ~DrumSampler() = default;
 
-    /** Load samples from the given root directory.  Call once at startup. */
-    bool loadSamples (const juce::File& salamanderRoot);
+    /** Register device sample rate for future resampling support. */
+    void prepare (double sampleRate);
 
     /**
-     * Render the next block of drum audio.
-     * @param outBuffer       Destination (stereo preferred).
+     * Load samples from the Salamander root directory.
+     * Safe to call from the message thread before playback starts.
+     * @return true if at least one voice loaded successfully.
+     */
+    bool loadSamples (const juce::File& salamanderRoot);
+
+    /** True if loadSamples() succeeded for at least one voice. */
+    bool areSamplesLoaded() const noexcept { return anyVoiceLoaded; }
+
+    /**
+     * Render the next block of drum audio into outBuffer.
+     * Adds to existing content (call outBuffer.clear() first if needed).
+     *
+     * @param outBuffer       Destination stereo buffer.
      * @param numSamples      Block size.
      * @param sampleRate      Current device sample rate.
      * @param pattern         Active DrumPattern.
      * @param bpm             Current tempo.
-     * @param playheadSample  Current position within the pattern (samples).
+     * @param playheadSample  Position within the current pattern (samples).
      */
     void processBlock (juce::AudioBuffer<float>& outBuffer,
                        int                       numSamples,
@@ -43,18 +61,22 @@ private:
     struct Voice
     {
         juce::AudioBuffer<float> sample;
-        int                      playPos { -1 };  ///< -1 = inactive
+        int  playPos      { -1 };  ///< -1 = inactive
+        int  triggerOffset { 0 };  ///< sample offset within current block
     };
 
-    bool loadWav (const juce::File& file, juce::AudioBuffer<float>& dest);
-    void triggerVoice (int voiceIndex);
-    void mixVoices (juce::AudioBuffer<float>& outBuffer, int numSamples);
+    bool loadFirstWavInDir (const juce::File& dir, juce::AudioBuffer<float>& dest);
+    void triggerVoice      (int voiceIndex, int blockOffset);
+    void mixVoices         (juce::AudioBuffer<float>& outBuffer, int numSamples);
 
     static constexpr int kNumVoices = 6;  // Kick, Snare, HiHat, Crash, Ride, Tom
+    static const char*   kVoiceDirs[kNumVoices];
+
     Voice voices[kNumVoices];
 
     juce::AudioFormatManager formatManager;
-    bool samplesLoaded { false };
+    double currentSampleRate { 44100.0 };
+    bool   anyVoiceLoaded    { false };
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (DrumSampler)
 };

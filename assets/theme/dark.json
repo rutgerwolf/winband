@@ -1,0 +1,40 @@
+{
+  "_comment": "WinBand dark theme — loaded at startup and applied via JUCE LookAndFeel",
+  "colours": {
+    "windowBackground":      "#0d0d14",
+    "panelBackground":       "#1a1a2e",
+    "trackBackground":       "#16213e",
+    "trackBackgroundAlt":    "#0f3460",
+    "drummerTrack":          "#1b1b3a",
+    "accent":                "#e94560",
+    "accentHover":           "#ff6b6b",
+    "text":                  "#e0e0e0",
+    "textMuted":             "#888899",
+    "textDisabled":          "#555566",
+    "border":                "#2a2a4a",
+    "buttonBackground":      "#2a2a4a",
+    "buttonBackgroundHover": "#3a3a5a",
+    "buttonBackgroundDown":  "#e94560",
+    "sliderTrack":           "#2a2a4a",
+    "sliderThumb":           "#e94560",
+    "meterLow":              "#4caf50",
+    "meterMid":              "#ffeb3b",
+    "meterHigh":             "#f44336",
+    "transportBackground":   "#111122",
+    "recordRed":             "#cc2200",
+    "waveform":              "#e94560",
+    "waveformBackground":    "#0d0d20"
+  },
+  "fonts": {
+    "ui":      { "family": "Segoe UI",  "size": 13 },
+    "mono":    { "family": "Consolas",  "size": 12 },
+    "display": { "family": "Segoe UI",  "size": 18, "bold": true }
+  },
+  "metrics": {
+    "trackHeight":       72,
+    "trackHeaderWidth": 180,
+    "transportHeight":   52,
+    "borderRadius":       4,
+    "padding":            8
+  }
+}

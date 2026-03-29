@@ -94,6 +94,5 @@ void MainComponent::bpmChanged (double newBpm)
 void MainComponent::tapTempo()
 {
     drummerTrack.tapTempo();
-    // Reflect derived BPM back to the transport bar
-    // (DrummerTrack would need a getBpm() for this — noted for future)
+    transportBar.setBpm (drummerTrack.getBpm());
 }

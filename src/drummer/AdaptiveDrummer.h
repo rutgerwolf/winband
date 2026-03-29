@@ -29,7 +29,8 @@ public:
     void prepare (double sampleRate, int blockSize);
 
     void setStyle    (DrumStyle style);
-    void setBpm      (double bpm);
+    void   setBpm    (double bpm);
+    double getBpm    () const noexcept { return bpm; }
     void setTapTempo ();  ///< Call on each tap; BPM derived from tap intervals.
 
     /** Load Salamander samples.  Call once after prepare(). */

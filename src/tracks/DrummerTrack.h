@@ -23,9 +23,10 @@ public:
     // ── Controls ────────────────────────────────────────────────────────────
     AdaptiveDrummer& getDrummer() noexcept { return drummer; }
 
-    void setStyle (DrumStyle style)  { drummer.setStyle (style); }
-    void setBpm   (double bpm)       { drummer.setBpm (bpm); }
-    void tapTempo ()                 { drummer.setTapTempo(); }
+    void   setStyle (DrumStyle style)  { drummer.setStyle (style); }
+    void   setBpm   (double bpm)       { drummer.setBpm (bpm); }
+    double getBpm   () const noexcept  { return drummer.getBpm(); }
+    void   tapTempo ()                 { drummer.setTapTempo(); }
 
     bool loadSamples (const juce::File& salamanderRoot)
         { return drummer.loadSamples (salamanderRoot); }

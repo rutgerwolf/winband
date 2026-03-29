@@ -4,25 +4,18 @@ DrummerTrack::DrummerTrack (const juce::String& trackName)
     : TrackBase (trackName)
 {}
 
-void DrummerTrack::prepareToPlay (double newSampleRate, int /*samplesPerBlock*/)
+void DrummerTrack::prepareToPlay (double sampleRate, int samplesPerBlock)
 {
-    sampleRate = newSampleRate;
-    drummer.reset();
+    currentSampleRate = sampleRate;
+    drummer.prepare (sampleRate, samplesPerBlock);
 }
 
 void DrummerTrack::processBlock (juce::AudioBuffer<float>& buffer,
                                  juce::MidiBuffer& /*midiMessages*/)
 {
-    if (muted) return;
+    if (isMuted()) return;
 
-    // Analyze the latest guide buffer (if any)
-    {
-        juce::ScopedLock sl (guideLock);
-        if (guideBlock.getNumSamples() > 0)
-            drummer.analyzeGuideBuffer (guideBlock, sampleRate);
-    }
-
-    drummer.processBlock (buffer, buffer.getNumSamples(), sampleRate);
+    drummer.processBlock (buffer, buffer.getNumSamples(), currentSampleRate);
     buffer.applyGain (volume);
 }
 
@@ -31,10 +24,10 @@ void DrummerTrack::releaseResources()
     drummer.reset();
 }
 
-void DrummerTrack::setGuideBuffer (const juce::AudioBuffer<float>& guide)
+void DrummerTrack::feedGuideBuffer (const juce::AudioBuffer<float>& guide)
 {
-    juce::ScopedLock sl (guideLock);
-    guideBlock = guide;
+    // Called from the audio thread — no lock needed; drummer is audio-thread-only
+    drummer.analyzeGuideBuffer (guide);
 }
 
 juce::ValueTree DrummerTrack::toValueTree() const

@@ -21,7 +21,7 @@ void AudioTrack::prepareToPlay (double sampleRate, int samplesPerBlock)
 void AudioTrack::processBlock (juce::AudioBuffer<float>& buffer,
                                juce::MidiBuffer& /*midiMessages*/)
 {
-    if (muted.load())
+    if (isMuted())
     {
         buffer.clear();
         return;
@@ -32,8 +32,8 @@ void AudioTrack::processBlock (juce::AudioBuffer<float>& buffer,
     // ── 1. Record from selected input channel ────────────────────────────────
     if (recording.load())
     {
-        const int space   = recordedAudio.getNumSamples() - recordWritePos;
-        const int toCopy  = juce::jmin (numSamples, space);
+        const int space  = recordedAudio.getNumSamples() - recordWritePos;
+        const int toCopy = juce::jmin (numSamples, space);
 
         if (toCopy > 0)
         {
@@ -53,7 +53,7 @@ void AudioTrack::processBlock (juce::AudioBuffer<float>& buffer,
         }
         else
         {
-            // Buffer is full — stop recording silently
+            // Pre-allocated buffer is full — stop recording silently
             recording = false;
         }
     }
@@ -86,10 +86,10 @@ void AudioTrack::processBlock (juce::AudioBuffer<float>& buffer,
     }
     else if (! monitoring.load())
     {
-        // Nothing to play back and monitoring off — silence
+        // Nothing to play back and monitoring off — silence the output
         buffer.clear();
     }
-    // else: monitoring on — buffer already contains input data, pass through
+    // else: monitoring on — input data already in buffer, pass through
 
     // ── 3. Volume + pan ──────────────────────────────────────────────────────
     applyGainAndPan (buffer, numSamples);
@@ -105,7 +105,8 @@ void AudioTrack::releaseResources()
 
 void AudioTrack::startRecording()
 {
-    // Reset position first so the audio callback never sees a half-reset state
+    // Reset counters before setting the flag so the audio callback
+    // never observes a stale position alongside recording=true.
     recordWritePos  = 0;
     recordedSamples = 0;
     recording       = true;
@@ -116,7 +117,6 @@ void AudioTrack::stopRecording()
     recording       = false;
     recordedSamples = recordWritePos;
 
-    // Trim the pre-allocated buffer to the actual recorded length
     if (recordedSamples > 0)
         recordedAudio.setSize (recordedAudio.getNumChannels(), recordedSamples,
                                /*keepExisting=*/true);
@@ -149,9 +149,9 @@ void AudioTrack::clearRecording()
 juce::ValueTree AudioTrack::toValueTree() const
 {
     auto tree = TrackBase::toValueTree();
-    tree.setProperty ("type",         "audio",         nullptr);
-    tree.setProperty ("inputMode",    (int) inputMode, nullptr);
-    tree.setProperty ("inputChannel", inputChannel,    nullptr);
+    tree.setProperty ("type",         "audio",           nullptr);
+    tree.setProperty ("inputMode",    (int) inputMode,   nullptr);
+    tree.setProperty ("inputChannel", inputChannel,      nullptr);
     tree.setProperty ("monitoring",   monitoring.load(), nullptr);
     return tree;
 }
@@ -173,7 +173,6 @@ void AudioTrack::applyGainAndPan (juce::AudioBuffer<float>& buf,
 
     if (buf.getNumChannels() == 2 && pan != 0.0f)
     {
-        // Linear pan law: attenuate the opposite side
         const float leftGain  = (pan <= 0.0f) ? 1.0f : (1.0f - pan);
         const float rightGain = (pan >= 0.0f) ? 1.0f : (1.0f + pan);
         buf.applyGain (0, 0, numSamples, leftGain);

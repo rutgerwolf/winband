@@ -1,15 +1,18 @@
 #pragma once
 #include <JuceHeader.h>
 
+class TrackBase;
+
 /**
- * Central audio engine.
+ * AudioEngine
  *
- * Responsibilities:
- *   - Opens and manages the audio device (ASIO preferred, WASAPI fallback)
- *   - Drives the AudioProcessorGraph for all active tracks
- *   - Exposes transport state (play / stop / record)
+ * Opens and manages the audio device (ASIO preferred, WASAPI fallback).
+ * Routes device input to registered tracks and mixes their output to the
+ * device output.
  *
- * MVP scope: supports a single audio input track + the drummer track.
+ * Thread safety:
+ *   addTrack / removeTrack / clearTracks may be called from any thread.
+ *   The audio callback holds a read lock; track mutations hold a write lock.
  */
 class AudioEngine : public juce::AudioIODeviceCallback
 {
@@ -17,35 +20,56 @@ public:
     AudioEngine();
     ~AudioEngine() override;
 
-    // Device management
-    bool initialise();   ///< Open preferred device; returns false on failure
+    // ── Lifecycle ─────────────────────────────────────────────────────────
+    /** Open preferred device. Returns false and logs on failure. */
+    bool initialise();
     void shutdown();
 
-    juce::AudioDeviceManager& getDeviceManager() { return deviceManager; }
+    juce::AudioDeviceManager& getDeviceManager() noexcept { return deviceManager; }
 
-    // Transport
+    // ── Track management (non-owning) ─────────────────────────────────────
+    void addTrack    (TrackBase* track);
+    void removeTrack (TrackBase* track);
+    void clearTracks ();
+
+    // ── Transport ─────────────────────────────────────────────────────────
     void play();
     void stop();
     void record();
 
-    bool isPlaying()  const { return playing; }
-    bool isRecording() const { return recording; }
+    bool isPlaying()   const noexcept { return playing.load(); }
+    bool isRecording() const noexcept { return recording.load(); }
 
-    // AudioIODeviceCallback
-    void audioDeviceIOCallbackWithContext(const float* const* inputChannelData,
-                                          int numInputChannels,
-                                          float* const* outputChannelData,
-                                          int numOutputChannels,
-                                          int numSamples,
-                                          const juce::AudioIODeviceCallbackContext& context) override;
-    void audioDeviceAboutToStart(juce::AudioIODevice* device) override;
-    void audioDeviceStopped() override;
+    double getSampleRate() const noexcept { return currentSampleRate; }
+    int    getBlockSize()  const noexcept { return currentBlockSize; }
+
+    // ── AudioIODeviceCallback ─────────────────────────────────────────────
+    void audioDeviceIOCallbackWithContext (const float* const* inputChannelData,
+                                           int   numInputChannels,
+                                           float* const* outputChannelData,
+                                           int   numOutputChannels,
+                                           int   numSamples,
+                                           const juce::AudioIODeviceCallbackContext& context) override;
+    void audioDeviceAboutToStart (juce::AudioIODevice* device) override;
+    void audioDeviceStopped      () override;
+    void audioDeviceError        (const juce::String& errorMessage) override;
 
 private:
+    bool tryInitialiseAsio    ();
+    bool tryInitialiseDefault ();
+
     juce::AudioDeviceManager deviceManager;
+
+    juce::Array<TrackBase*> tracks;
+    juce::ReadWriteLock     tracksLock;
 
     std::atomic<bool> playing   { false };
     std::atomic<bool> recording { false };
 
-    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(AudioEngine)
+    double currentSampleRate { 44100.0 };
+    int    currentBlockSize  { 512 };
+
+    juce::AudioBuffer<float> mixBuffer;  ///< Stereo scratch buffer, allocated once
+
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (AudioEngine)
 };

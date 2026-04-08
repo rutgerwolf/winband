@@ -14,7 +14,10 @@ add_subdirectory(third_party/JUCE)
 
 # ── Aubio (git submodule: third_party/aubio) ─────────────────────────────────────
 # Aubio is optional: EnergyAnalyzer falls back to pure C++ if not present.
-if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/third_party/aubio/CMakeLists.txt")
+# On Windows, Aubio's own CMakeLists.txt requires pkg-config (a Linux/Unix tool)
+# and cannot be used via add_subdirectory.  Skip it on WIN32; the C++ fallback
+# in EnergyAnalyzer.cpp (via #if __has_include) handles the rest transparently.
+if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/third_party/aubio/CMakeLists.txt" AND NOT WIN32)
     add_subdirectory(third_party/aubio EXCLUDE_FROM_ALL)
     set(AUBIO_LIBRARIES    aubio)
     set(AUBIO_INCLUDE_DIRS "${CMAKE_CURRENT_SOURCE_DIR}/third_party/aubio/src")
@@ -103,6 +106,10 @@ target_link_libraries(WinBand
         juce::juce_recommended_lto_flags
         juce::juce_recommended_warning_flags
 )
+
+# Generate JuceHeader.h (includes all linked JUCE module headers in one file).
+# Must be called after target_link_libraries so JUCE knows which modules to include.
+juce_generate_juce_header(WinBand)
 
 # ── Post-build: copy assets next to the executable ───────────────────────────────
 add_custom_command(TARGET WinBand POST_BUILD

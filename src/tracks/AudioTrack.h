@@ -51,6 +51,14 @@ public:
     int  getRecordedSamples()                          const noexcept { return recordedSamples; }
     void clearRecording();
 
+    /**
+     * Load an audio file (WAV / AIFF / etc.) into the recorded buffer.
+     * Replaces any previously recorded audio.  Safe to call from the
+     * message thread before playback starts.
+     * @return true if the file was read successfully.
+     */
+    bool loadFromFile (const juce::File& file);
+
     // ── Serialisation ────────────────────────────────────────────────────────
     juce::ValueTree toValueTree()                        const override;
     void            fromValueTree (const juce::ValueTree& tree) override;

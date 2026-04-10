@@ -40,11 +40,11 @@ private:
     void buttonClicked      (juce::Button* button) override;
     void labelTextChanged   (juce::Label*  label)  override;
 
-    juce::TextButton playButton   { "\u25B6" };   // ▶
-    juce::TextButton stopButton   { "\u25A0" };   // ■
-    juce::TextButton recordButton { "\u25CF" };   // ●
-    juce::TextButton rewindButton { "\u23EE" };   // ⏮
-    juce::TextButton tapButton    { "TAP" };
+    juce::TextButton playButton   { "Play" };
+    juce::TextButton stopButton   { "Stop" };
+    juce::TextButton recordButton { "Rec" };
+    juce::TextButton rewindButton { "Rew" };
+    juce::TextButton tapButton    { "Tap" };
     juce::Label      bpmLabel;
     juce::Label      bpmDisplay;
 

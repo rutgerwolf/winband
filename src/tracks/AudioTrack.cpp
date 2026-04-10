@@ -144,6 +144,32 @@ void AudioTrack::clearRecording()
     recordedAudio.clear();
 }
 
+bool AudioTrack::loadFromFile (const juce::File& file)
+{
+    juce::AudioFormatManager fmt;
+    fmt.registerBasicFormats();
+
+    std::unique_ptr<juce::AudioFormatReader> reader (fmt.createReaderFor (file));
+    if (reader == nullptr) return false;
+
+    const int numCh  = static_cast<int> (reader->numChannels);
+    const int numSmp = static_cast<int> (reader->lengthInSamples);
+    if (numSmp <= 0) return false;
+
+    // Stop any in-progress recording / playback before touching the buffer
+    recording   = false;
+    playingBack = false;
+
+    recordedAudio.setSize (numCh, numSmp, false, true);
+    reader->read (&recordedAudio, 0, numSmp, 0, true, true);
+
+    recordedSamples = numSmp;
+    recordWritePos  = numSmp;
+    playbackPos     = 0;
+
+    return true;
+}
+
 // ── Serialisation ────────────────────────────────────────────────────────────
 
 juce::ValueTree AudioTrack::toValueTree() const

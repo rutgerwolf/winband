@@ -23,13 +23,9 @@ juce::StringArray AsioManager::getAvailableDriverNames()
 void AsioManager::openControlPanel(juce::AudioDeviceManager& manager)
 {
 #if JUCE_ASIO
+    // showControlPanel() is a public virtual on juce::AudioIODevice — no cast needed.
     if (auto* device = manager.getCurrentAudioDevice())
-    {
-        // ASIO devices expose showControlPanel() via dynamic_cast
-        // (JUCE internal; works when JUCE_ASIO=1)
-        if (auto* asioDevice = dynamic_cast<juce::ASIOAudioIODevice*>(device))
-            asioDevice->showControlPanel();
-    }
+        device->showControlPanel();
 #else
     juce::ignoreUnused(manager);
 #endif

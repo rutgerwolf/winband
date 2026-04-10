@@ -111,6 +111,14 @@ target_link_libraries(WinBand
 # Must be called after target_link_libraries so JUCE knows which modules to include.
 juce_generate_juce_header(WinBand)
 
+# ── MSVC-specific flags ──────────────────────────────────────────────────────────
+# /utf-8: treat source and execution character set as UTF-8.
+#   Fixes C4566 "character cannot be represented" warnings for Unicode literals
+#   (▶ ■ ● ⏮ in TransportBar.h) when MSVC uses its default code page (CP1252).
+if(MSVC)
+    target_compile_options(WinBand PRIVATE /utf-8)
+endif()
+
 # ── Post-build: copy assets next to the executable ───────────────────────────────
 add_custom_command(TARGET WinBand POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_directory

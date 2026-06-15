@@ -10,24 +10,21 @@ without a professional DAW background who want to quickly capture ideas on Windo
 | Feature | Details |
 |---|---|
 | Audio recording | Single track, ASIO (low-latency) or WASAPI |
-| Playback & monitoring | Real-time input monitoring with zero-latency path |
+| Playback & monitoring | Real-time input monitoring |
 | Adaptive drummer | Five styles (Rock / Jazz / Funk / Electronic / Brushes), tap-tempo, guide-track energy analysis |
 | Transport | Play / Stop / Record + BPM display with tap-tempo button |
 | Track view | Per-track strip: name, mute, solo, VU meter, waveform |
-| Theme | Dark UI (bg `#0d0d14`, accent `#e94560`) driven by `assets/theme/dark.json` |
+| Theme | Dark UI driven by `assets/theme/dark.json` |
 
 ---
 
-## Adaptive Drummer (F5)
+## Adaptive Drummer
 
-The built-in drum generator analyses the energy envelope of a guide track (using
-the Aubio library) and adapts its pattern density in real time. It supports five
-groove vocabularies and three density levels (Sparse / Medium / Full).
+The built-in drum generator analyses the energy envelope of a guide track (via
+Aubio) and adapts its pattern density in real time. Five groove vocabularies,
+three density levels (Sparse / Medium / Full), tap-tempo.
 
-Tap tempo: click the **Tap** button repeatedly; BPM is derived from the average of
-the last four taps.
-
-For a standalone VST3 version of the drum engine see
+For a standalone VST3 version see
 [rutgerwolf/Adaptive-drumming-vst](https://github.com/rutgerwolf/Adaptive-drumming-vst).
 
 ---
@@ -36,14 +33,12 @@ For a standalone VST3 version of the drum engine see
 
 ```
 ┌──────────────────────────────────────────────────────────────────┐
-│  Transport bar                                                   │
-│  [ ▶ Play ]  [ ■ Stop ]  [ ● Rec ]   BPM: 120.0  [ Tap ]       │
+│  Transport  [ ▶ Play ]  [ ■ Stop ]  [ ● Rec ]  120.0 BPM  [ Tap ]  │
 ├──────────────────────────────────────────────────────────────────┤
-│  Track 1 — Audio          [M] [S]  ████░░░░  ≈≈≈≈≈≈≈≈≈         │
-│  Track 2 — Drummer        [M] [S]  ████████                     │
-│  ...                                                             │
+│  Track 1 — Audio Track     [M] [S]  ████░░░░  ≈≈≈≈≈≈≈≈≈             │
+│  Track 2 — Drum Track      [M] [S]  ████████                         │
 └──────────────────────────────────────────────────────────────────┘
-  trackHeight 72 px · transportHeight 52 px
+  trackHeight 72 px · transportHeight 52 px
 ```
 
 ---
@@ -54,88 +49,122 @@ For a standalone VST3 version of the drum engine see
 |---|---|
 | OS | Windows 10 / 11 64-bit |
 | Build system | CMake ≥ 3.22 |
-| Compiler | MSVC 2022 or Clang/LLVM (C++17) |
+| Compiler | MSVC 2022 (C++17) |
 | Audio backend | ASIO (low-latency) + WASAPI fallback |
 | JUCE | git submodule (master branch) |
 | Aubio | git submodule (master branch) |
 
 ---
 
-## Building
+## Building on Windows
 
-```bash
+### Prerequisites
+
+| Tool | Download | Notes |
+|---|---|---|
+| Git for Windows | <https://git-scm.com/download/win> | Required for submodule support |
+| CMake 3.22+ | <https://cmake.org/download/> | Tick “Add to PATH” during install |
+| Visual Studio 2022 | <https://visualstudio.microsoft.com/> | Workload: **Desktop development with C++** |
+
+### Step 1 — Clone (including submodules)
+
+```bat
 git clone --recurse-submodules https://github.com/rutgerwolf/winband.git
 cd winband
-cmake -B build -DCMAKE_BUILD_TYPE=Release
+```
+
+If you already cloned without `--recurse-submodules`:
+
+```bat
+git submodule update --init --recursive
+```
+
+### Step 2 — (Optional) Install the ASIO SDK
+
+ASIO gives significantly lower audio latency than WASAPI. Without it WinBand still
+builds and runs via WASAPI.
+
+1. Download the free [ASIO SDK](https://www.steinberg.net/developers/) from Steinberg.
+2. Extract it so that `third_party\ASIOSDK\common\asio.h` exists.
+3. CMake detects the folder automatically and enables the ASIO backend.
+
+### Step 3 — Configure
+
+```bat
+cmake -B build -G "Visual Studio 17 2022" -A x64
+```
+
+### Step 4 — Build
+
+```bat
 cmake --build build --config Release
 ```
 
-### ASIO support (optional, recommended for low latency)
+### Step 5 — Output
 
-> ASIO is available free of charge from Steinberg but is **not redistributable**,
-> so the SDK is not included in this repository.
+| Artifact | Path |
+|---|---|
+| WinBand executable | `build\Release\WinBand.exe` |
 
-1. Download the [ASIO SDK](https://www.steinberg.net/developers/) from Steinberg.
-2. Extract it to `third_party/ASIOSDK` (so that
-   `third_party/ASIOSDK/common/asio.h` exists).
-3. CMake detects the folder automatically and enables the ASIO backend.
+Run it directly from that folder so that relative paths to `assets\` resolve correctly.
 
-Without the SDK, WinBand falls back to WASAPI.
+---
 
-### Salamander Drumkit samples
+## Salamander Drumkit samples
 
-The drummer requires Salamander WAV files (~2 GB, CC BY 3.0, not in repo).
+The drummer requires Salamander WAV files (~2 GB, CC BY 3.0, not included in repo).
 
 1. Download from <https://archive.org/details/SalamanderDrumkit>.
-2. Place WAV files in `assets/samples/salamander/` using this layout:
+2. Extract and place the WAV files in `assets\samples\salamander\` using this layout:
 
 ```
-salamander/
-├── kick/
-├── snare/
-├── hihat/
-├── crash/
-├── ride/
-└── tom/
+assets\samples\salamander\
+├── kick\          e.g. kick_OH_F_1.wav, kick_OH_MP_1.wav …
+├── snare\
+├── hihat\
+├── crash\
+├── ride\
+└── tom\
 ```
 
-The drummer works without samples but those voices will be silent.
+WinBand loads samples on startup from that path. Missing folders are silently
+skipped (that drum voice will be silent).
 
 ---
 
 ## Project structure
 
 ```
-winband/
+winband\
 ├── CMakeLists.txt
 ├── LICENSES.md
-├── assets/
-│   ├── theme/dark.json               # Colour palette + UI metrics
-│   └── samples/salamander/           # Salamander Drumkit (not in repo)
-├── src/
-│   ├── main.cpp                      # JUCE_CREATE_APPLICATION entry point
-│   ├── MainComponent.h/.cpp          # Root component; wires engine + tracks + UI
-│   ├── audio/
+├── assets\
+│   ├── theme\dark.json               # Colour palette + UI metrics
+│   └── samples\salamander\           # Salamander Drumkit (not in repo)
+├── src\
+│   ├── main.cpp
+│   ├── MainComponent.h/.cpp
+│   ├── audio\
 │   │   ├── AudioEngine.h/.cpp        # ASIO/WASAPI init, track routing, stereo mix
-│   │   └── AsioManager.h/.cpp        # ASIO device management (Windows)
-│   ├── drummer/
+│   │   └── AsioManager.h/.cpp        # ASIO device management
+│   ├── drummer\
 │   │   ├── AdaptiveDrummer.h/.cpp    # Orchestrator; 5 styles, tap-tempo, energy analysis
 │   │   ├── DrumPattern.h/.cpp        # 16-step bitmask grid, 3 densities per style
 │   │   ├── DrumSampler.h/.cpp        # Salamander WAV playback
 │   │   └── EnergyAnalyzer.h/.cpp     # Aubio RMS pipeline (pure-C++ fallback)
-│   ├── tracks/
-│   │   ├── TrackBase.h/.cpp          # Abstract base (mute/solo atomics)
-│   │   ├── AudioTrack.h/.cpp         # Record + playback + monitoring
-│   │   └── DrummerTrack.h/.cpp       # AdaptiveDrummer wrapped as a track
-│   └── ui/
-│       ├── MainWindow.h/.cpp         # JUCE DocumentWindow
-│       ├── TransportBar.h/.cpp       # Play/Stop/Rec/BPM/Tap controls
-│       └── TrackView.h/.cpp          # Per-track strip (name, mute, solo, VU, waveform)
-├── tests/
-│   └── DrumPatternTest.cpp           # JUCE UnitTestRunner (step logic, all styles)
-└── third_party/
-    ├── JUCE/                         # git submodule
-    └── aubio/                        # git submodule
+│   ├── tracks\
+│   │   ├── TrackBase.h/.cpp
+│   │   ├── AudioTrack.h/.cpp
+│   │   └── DrummerTrack.h/.cpp
+│   └── ui\
+│       ├── MainWindow.h/.cpp
+│       ├── TransportBar.h/.cpp
+│       └── TrackView.h/.cpp
+├── tests\
+│   └── DrumPatternTest.cpp
+└── third_party\
+    ├── JUCE\                         # git submodule
+    └── aubio\                        # git submodule
 ```
 
 ---
@@ -144,11 +173,11 @@ winband/
 
 | Problem | Cause | Fix |
 |---|---|---|
-| `third_party/JUCE` or `third_party/aubio` empty | Cloned without `--recurse-submodules` | `git submodule update --init --recursive` |
-| No ASIO devices in device list | ASIO SDK not found | Place SDK in `third_party/ASIOSDK` (see above) |
+| `third_party\JUCE` or `third_party\aubio` empty | Cloned without `--recurse-submodules` | `git submodule update --init --recursive` |
+| No ASIO devices listed | ASIO SDK not found | Place SDK at `third_party\ASIOSDK` (see above) |
 | Drummer silent | Salamander WAVs missing | See [Salamander Drumkit samples](#salamander-drumkit-samples) |
-| Black / invisible UI | JUCE not initialised before component creation | Ensure `MainComponent` is created after `JUCEApplication::initialise` |
-| CMake can't find aubio headers | Submodule not initialised | Same as row 1 |
+| Black / invisible UI on startup | JUCE display init race | Ensure no DPI scaling issues; try running as administrator once |
+| CMake error about missing headers | Stale cache after submodule init | Delete `build\` and rerun configure |
 
 ---
 
